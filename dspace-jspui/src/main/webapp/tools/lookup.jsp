@@ -134,7 +134,7 @@ if(Boolean.valueOf(getDefaultedRequestParameter(request,"onlyLocal", "false")))
               <br/><%= help %>
             </label>
           <% } %>
-          <div class="spacer"> </div>
+          <div id="aspect_general_ChoiceLookup_detailed_info" class=""> </div>
         </div>
       </li>
       <li class="ds-form-item last choices-lookup"> 

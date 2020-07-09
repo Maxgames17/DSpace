@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -187,7 +186,7 @@ public class RPMultiAuthority extends CRISAuthority
                 for (DSpaceObject dso : result.getDspaceObjects())
                 {
                     ResearcherPage rp = (ResearcherPage) dso;
-                    choiceList.addAll(buildAggregateByExtra(rp));
+                    choiceList.addAll(buildAggregateByExtra(rp, field));
                 }
                 
                 int surnamesResult = choiceList.size();
@@ -209,7 +208,12 @@ public class RPMultiAuthority extends CRISAuthority
                     for (DSpaceObject dso : result.getDspaceObjects())
                     {
                         ResearcherPage rp = (ResearcherPage) dso;
-                        choiceList.addAll(buildAggregateByExtra(rp));
+                        choiceList.addAll(buildAggregateByExtra(rp, field));
+                        if(choiceList.isEmpty()) {
+                            choiceList
+                                .add(new Choice(rp.getCrisID(), 
+                                        generateDisplayValue(rp.getFullName(), rp), rp.getFullName(), new HashMap<String, String>()));
+                        }
                     }
                 }
                 int foundSize = choiceList.size();
@@ -232,14 +236,27 @@ public class RPMultiAuthority extends CRISAuthority
         }
     }
 
-    private List<Choice> buildAggregateByExtra(ResearcherPage rp)
+    private List<Choice> buildAggregateByExtra(ResearcherPage rp, String field)
     {
         List<Choice> choiceList = new LinkedList<Choice>();
         if (generators != null)
         {
+            RPAuthorityExtraMetadataGenerator defaultGenerator = null;
+            boolean generatorFound = false;
             for (RPAuthorityExtraMetadataGenerator gg : generators)
             {
-                choiceList.addAll(gg.buildAggregate(rp));
+                String parentField = gg.getParentInputFormMetadata();
+                if ( null == parentField ) {
+                    defaultGenerator = gg;
+                }
+                
+                if ( field.equals(parentField)) {
+                    generatorFound = true;
+                    choiceList.addAll(gg.buildAggregate(rp));
+                }
+            }
+            if ( !generatorFound && null != defaultGenerator ) {
+                choiceList.addAll(defaultGenerator.buildAggregate(rp));
             }
         }
         return choiceList;
@@ -278,7 +295,7 @@ public class RPMultiAuthority extends CRISAuthority
     public Choices getBestMatch(String field, String text, int collection,
             String locale)
     {
-
+        log.debug("RPMultiAuthority::getBestMatch for field["+field+"] text["+text+"] collection["+collection+"]");
         try
         {
             init();
@@ -303,7 +320,7 @@ public class RPMultiAuthority extends CRISAuthority
                 for (DSpaceObject dso : result.getDspaceObjects())
                 {
                     ResearcherPage rp = (ResearcherPage) dso;
-                    choiceList.addAll(buildAggregateByExtra(rp));
+                    choiceList.addAll(buildAggregateByExtra(rp,field));
                 }
             }
 

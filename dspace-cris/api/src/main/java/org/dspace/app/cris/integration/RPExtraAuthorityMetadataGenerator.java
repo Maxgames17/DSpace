@@ -24,6 +24,10 @@ public class RPExtraAuthorityMetadataGenerator
 {
 
     private String relatedInputformMetadata = "dc_contributor_department";
+    
+    private String additionalInputformMetadata = "dc_contributor_affiliation";
+    
+    private String parentInputFormMetadata = "";
 
     private String schema = "affiliation";
 
@@ -53,8 +57,8 @@ public class RPExtraAuthorityMetadataGenerator
             buildSingleExtraByRP(rp, extras);
             choiceList.add(
                     new Choice(ResearcherPageUtils.getPersistentIdentifier(rp),
-                            rp.getFullName(),
                             ResearcherPageUtils.getLabel(rp.getFullName(), rp),
+                            rp.getFullName(),
                             extras));
         }
         else
@@ -78,8 +82,8 @@ public class RPExtraAuthorityMetadataGenerator
                 extras.put("data-" + getRelatedInputformMetadata(), "");
                 choiceList.add(new Choice(
                         ResearcherPageUtils.getPersistentIdentifier(rp),
-                        rp.getFullName(),
                         ResearcherPageUtils.getLabel(rp.getFullName(), rp),
+                        rp.getFullName(),
                         extras));
             }
         }
@@ -165,4 +169,23 @@ public class RPExtraAuthorityMetadataGenerator
         this.singleResultOnAggregate = singleResultOnAggregate;
     }
 
+    public String getAdditionalInputformMetadata()
+    {
+        return additionalInputformMetadata;
+    }
+
+    public void setAdditionalInputformMetadata(String additionalInputformMetadata)
+    {
+        this.additionalInputformMetadata = additionalInputformMetadata;
+    }
+
+    public String getParentInputFormMetadata()
+    {
+        return parentInputFormMetadata;
+    }
+
+    public void setParentInputFormMetadata(String parentMetadata)
+    {
+        this.parentInputFormMetadata = parentMetadata;
+    }
 }

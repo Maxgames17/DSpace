@@ -182,10 +182,11 @@ public class ResearcherPageUtils
      */
     public static String getLabel(String alternativeName, ResearcherPage rp)
     {
-    	IResearcherPageLabelDecorator decorator = dspace
-				  .getServiceManager()
-				  .getServiceByName("org.dspace.app.cris.util.IResearcherPageLabelDecorator", IResearcherPageLabelDecorator.class);
-return decorator.generateDisplayValue(alternativeName, rp);    
+        IResearcherPageLabelDecorator decorator = dspace.getServiceManager()
+                .getServiceByName(
+                        "org.dspace.app.cris.util.IResearcherPageLabelDecorator",
+                        IResearcherPageLabelDecorator.class);
+        return decorator.generateDisplayValue(alternativeName, rp);    
     }
 
     /**
@@ -391,25 +392,26 @@ return decorator.generateDisplayValue(alternativeName, rp);
 		}
 	}
     
-    private static List<Choice> choiceResults(DiscoverResult result){
+    private static List<Choice> choiceResults(DiscoverResult result, String field){
     	List<Choice> choiceList = new LinkedList<Choice>();
 		for (DSpaceObject dso : result.getDspaceObjects()) {
 			ResearcherPage rp = (ResearcherPage) dso;
-			Map<String, String> extras = buildExtra(rp);
+			Map<String, String> extras = buildExtra(rp, field);
 
 			choiceList.add(new Choice(getPersistentIdentifier(rp), getLabel(rp.getFullName(), rp),rp.getFullName(), extras));
 			if (rp.getTranslatedName() != null
 					&& rp.getTranslatedName().getVisibility() == VisibilityConstants.PUBLIC
 					&& rp.getTranslatedName().getValue() != null) {
-				choiceList.add(new Choice(getPersistentIdentifier(rp),getLabel(rp.getTranslatedName()
-						.getValue(), rp), rp.getTranslatedName().getValue(),
-						 extras));
+				choiceList.add(new Choice(getPersistentIdentifier(rp),
+						getLabel(rp.getTranslatedName().getValue(), rp),
+						 rp.getTranslatedName().getValue(), extras));
 			}
 			for (RestrictedField variant : rp.getVariants()) {
 				if (variant.getValue() != null
 						&& variant.getVisibility() == VisibilityConstants.PUBLIC) {
-					choiceList.add(new Choice(getPersistentIdentifier(rp), getLabel(
-							variant.getValue(), rp),variant.getValue(),  extras));
+					choiceList.add(new Choice(getPersistentIdentifier(rp), 
+								getLabel(variant.getValue(), rp),
+								variant.getValue(), extras));
 				}
 			}
 	    }
@@ -417,14 +419,22 @@ return decorator.generateDisplayValue(alternativeName, rp);
     }
     
     
-	public static Map<String, String> buildExtra(ResearcherPage rp)
+	public static Map<String, String> buildExtra(ResearcherPage rp, String field)
     {
 	    Map<String, String> extras = new HashMap<String,String>();
 	    List<RPAuthorityExtraMetadataGenerator> generators = dspace.getServiceManager().getServicesByType(RPAuthorityExtraMetadataGenerator.class);
 	    if(generators!=null) {
 	        for(RPAuthorityExtraMetadataGenerator gg : generators) {
-	            Map<String, String> extrasTmp = gg.build(rp);
-	            extras.putAll(extrasTmp);
+	            if(StringUtils.isNotBlank(gg.getParentInputFormMetadata())) {
+                    if(gg.getParentInputFormMetadata().equals(field)) {
+                        Map<String, String> extrasTmp = gg.build(rp);
+                        extras.putAll(extrasTmp);
+                    }
+	            }
+	            else {
+	                Map<String, String> extrasTmp = gg.build(rp);
+	                extras.putAll(extrasTmp);
+	            }
 	        }
 	    }
         return extras;
@@ -448,46 +458,52 @@ return decorator.generateDisplayValue(alternativeName, rp);
 		                        .getFirstNames()) ? "" : "*");
 		    }
 	
-		    if (StringUtils.isNotBlank(tmpPersonName.getFirstNames()))
+		    String firstName = tmpPersonName.getFirstNames();
+		    if (StringUtils.isNotBlank(firstName))
 		    {
+		        firstName = firstName.trim();
+		        if (firstName.endsWith("."))
+		        {
+		            firstName = firstName.substring(0, firstName.length()-1);
+		        }
 		        luceneQuery += (luceneQuery.length() > 0 ? " " : "")
-		                + ClientUtils.escapeQueryChars(tmpPersonName
-		                        .getFirstNames().trim()) + "*";
+		                + ClientUtils.escapeQueryChars(firstName) + "*";
 		    }
 		    luceneQuery = luceneQuery.replaceAll("\\\\ ", " ");
+		    String cleanedQuery = luceneQuery.replaceAll("(?:\\\\-|-)|(?:\\\\\\+|\\+)", " ");
 		    DiscoverQuery discoverQuery = new DiscoverQuery();
 		    applyCustomFilter(field, discoverQuery,_configurationService);
 		    discoverQuery.setSortField("crisrp.fullName_sort", SORT_ORDER.asc);		    
 		    discoverQuery.setDSpaceObjectFilter(CrisConstants.RP_TYPE_ID);
 		    String surnameQuery = "{!lucene q.op=AND df=rpsurnames}("
-    			    + luceneQuery
+    			    + cleanedQuery
     			    + ") OR ("
     			    // no need for a phrase search, the default operator is now AND and we want to match surnames in any order
-    			    + luceneQuery.substring(0,luceneQuery.length() - 1) + ")";
+    			    + cleanedQuery.substring(0,cleanedQuery.length() - 1) + ")";
 		    
 		    discoverQuery.setQuery(surnameQuery);
 		    discoverQuery.setMaxResults(MAX_RESULTS);
 		    
 		    DiscoverResult result = _searchService.search(null, discoverQuery, true);
 			
-			List<Choice> choiceList = choiceResults(result);
+			List<Choice> choiceList = choiceResults(result, field);
 			int surnamesResult = choiceList.size();
 		    
 			if (surnamesResult<MAX_RESULTS){
 		    	int difference = MAX_RESULTS - surnamesResult;
 		    	discoverQuery.setMaxResults(difference);
 		    	String crisauthoritylookup = "{!lucene q.op=AND df=crisauthoritylookup}("
-		    								 + luceneQuery
+		    								 + cleanedQuery
 		    								 + ") OR (\""
 		    								 + luceneQuery.substring(0,luceneQuery.length() - 1) + "\")";
 		    	
 		    	discoverQuery.setQuery(crisauthoritylookup);
-				String negativeFilters = "-rpsurnames:(" + luceneQuery.substring(0,luceneQuery.length() - 1) + ")";
-				String negativeFiltersStar = "-rpsurnames:(" + luceneQuery + ")";
+				String negativeFilters = "-rpsurnames:(" + cleanedQuery.substring(0,cleanedQuery.length() - 1) + ")";
+				String negativeFiltersStar = "-rpsurnames:(" + cleanedQuery + ")";
 				discoverQuery.addFilterQueries(negativeFilters);
 				discoverQuery.addFilterQueries(negativeFiltersStar);
 		    	result = _searchService.search(null, discoverQuery, true);
-		    	List<Choice> authorityLookupList = choiceResults(result);
+		    	List<Choice> authorityLookupList = choiceResults(result, field);
 		    	if (authorityLookupList.size()>0){
 		    		choiceList.addAll(authorityLookupList);
 		    	}

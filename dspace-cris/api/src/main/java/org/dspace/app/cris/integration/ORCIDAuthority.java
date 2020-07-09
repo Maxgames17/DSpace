@@ -49,7 +49,7 @@ public class ORCIDAuthority extends RPAuthority {
 		}
 	} 
 	
-	protected Choice[] addExternalResults(String field, String text, Choices choices, int start, int max) {
+	protected Choice[] addExternalResults(final String field, String text, Choices choices, int start, int max) {
 		if (source != null) {
 			try {
 				List<Choice> results = new ArrayList<Choice>();
@@ -104,7 +104,7 @@ public class ORCIDAuthority extends RPAuthority {
 			                            sb.append(" (").append(inst).append(")");
 			                        }
 			                        sb.append(" - ").append(serviceId);
-									extras.putAll(buildExtra(serviceId));
+									extras.putAll(buildExtra(serviceId, field));
 									threadResultsMap.get(num).add(new Choice(value.generateString(), sb.toString(), value.getValue(), extras));
 									Thread.yield();
 							}
@@ -150,14 +150,22 @@ public class ORCIDAuthority extends RPAuthority {
 		return choices.values;
 	}
 
-	private Map<String, String> buildExtra(String value)
+	private Map<String, String> buildExtra(String value, String field)
     {
         Map<String, String> extras = new HashMap<String,String>();
         
         if(generators!=null) {
             for(OrcidAuthorityExtraMetadataGenerator gg : generators) {
-                Map<String, String> extrasTmp = gg.build(source, value);
-                extras.putAll(extrasTmp);
+                if(StringUtils.isNotBlank(gg.getParentInputFormMetadata())) {
+                    if(gg.getParentInputFormMetadata().equals(field)) { 
+                        extras.putAll(
+                        		gg.build(source, value));
+                    }
+                }
+                else {
+                    extras.putAll(
+                    		gg.build(source, value));
+                }
             }
         }
         return extras;

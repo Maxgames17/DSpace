@@ -199,7 +199,7 @@ public class RPAuthority extends CRISAuthority implements
                 for (DSpaceObject dso : result.getDspaceObjects())
                 {
                     ResearcherPage rp = (ResearcherPage) dso;
-                    Map<String, String> extras = ResearcherPageUtils.buildExtra(rp);
+                    Map<String, String> extras = ResearcherPageUtils.buildExtra(rp, field);
                     choiceList
                             .add(new Choice(rp.getCrisID(), rp.getFullName(),
                                     generateDisplayValue(rp.getFullName(), rp), extras));

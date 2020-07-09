@@ -370,6 +370,32 @@ function DSpaceChoicesLoad(form)
                 selectedByValue = select.options.length - 1;
             if (opt.getAttributeNode('selected') != null)
                 selectedByChoices = select.options.length - 1;
+            //GET DETAILS
+            var attrs = opt.attributes;
+            var info = document.getElementById("aspect_general_ChoiceLookup_detailed_info");
+            var divDetails = document.createElement("ul");
+            divDetails.setAttribute("id","detail"+i);
+            divDetails.style.display = 'none';
+            divDetails.classList.add("detail-info");
+            
+            if(attrs != null){
+            	for(var z = 0; z < attrs.length; ++z)
+            	{
+	            	var attr = attrs.item(z);
+	                var newItem = document.createElement("li");
+	                
+	                var newItemValue = document.createTextNode(attr.value);
+	                newItem.appendChild(newItemValue);
+	                var newLabel = document.createElement("label");
+//	                var newLabelValue = document.createTextNode(attr.name);
+	                newLabel.classList.add("label-detail-info");
+//	                newLabel.appendChild(newLabelValue);
+	                divDetails.appendChild(newLabel);
+	                divDetails.appendChild(newItem);
+	            }
+            }
+            //divDetails.innerHTML = details;
+            info.appendChild(divDetails);
           }
           // add non-authority option if needed.
           if (!isClosed)
@@ -426,8 +452,15 @@ function DSpaceChoicesSelectOnChange ()
         form.elements['text1'].value = lastNameOf(so.value);
         form.elements['text2'].value = firstNameOf(so.value);
     }
-    else
+    else{
         form.elements['text1'].value = so.value;
+        var details = document.getElementsByClassName("detail-info"); 
+        for (var i = 0; i < details.length; i ++) {
+            details[i].style.display = 'none';
+        }
+        document.getElementById("detail"+select.selectedIndex).show();
+    }
+  
 }
 
 // handler for lookup popup's accept (or add) button
